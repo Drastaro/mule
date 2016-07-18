@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:magento="http://www.mulesoft.org/schema/mule/magento" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/magento http://www.mulesoft.org/schema/mule/magento/current/mule-magento.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration"
+		host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" />
+	<magento:config name="Magento" username="soapuser"
+		password="123456" address="http://www.magento1.com/index.php/api/v2_soap"
+		doc:name="Magento" />
+	<flow name="muleFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/listinvoice" doc:name="HTTP" />
+		<set-variable variableName="swUserId"
+			value="#[message.inboundProperties.'http.query.params'.sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.xero.actions.XeroScribeListInvoices"
+			doc:name="Java" />
+		<logger level="INFO" doc:name="Logger" />
+	</flow>
+	<flow name="getXeroItems">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/xeroItems" doc:name="HTTP" />
+		<set-variable variableName="swUserId"
+			value="#[message.inboundProperties.'http.query.params'.sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.xero.actions.XeroListItems"
+			doc:name="Java" />
+	</flow>
+	<flow name="listContacts">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/listcontacts" doc:name="HTTP" />
+		<set-variable variableName="swUserId"
+			value="#[message.inboundProperties.'http.query.params'.sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.magento.actions.MagentoScribeListCustomers"
+			doc:name="Java" />
+	</flow>
+	<flow name="MagentoListOrders">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/listOrders" doc:name="HTTP" />
+		<set-variable variableName="swUserId"
+			value="#[message.inboundProperties.'http.query.params'.sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.magento.actions.MagentoScribeListOrders"
+			doc:name="Java" />
+	</flow>
+	<flow name="SyncInvoiceToXero">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/invoice" doc:name="HTTP" />
+		<set-variable variableName="magentoSwUserId"
+			value="#[message.inboundProperties.'http.query.params'.magento_sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.magento.actions.MagentoSyncInvoicesToXero"
+			doc:name="Java" />
+	</flow>
+	<flow name="syncContactsToXero">
+		<http:listener config-ref="HTTP_Listener_Configuration"
+			path="/contacts" doc:name="HTTP" />
+		<set-variable variableName="magentoSwUserId"
+			value="#[message.inboundProperties.'http.query.params'.magento_sw_user_id]"
+			doc:name="Variable" />
+		<component class="com.mule.magento.actions.MagentoSyncContactsToXero"
+			doc:name="Java" />
+	</flow>
+    <flow name="sync_qb_contacts">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/qbContacts" doc:name="HTTP"/>
+        <set-variable variableName="swUserId" value="#[message.inboundProperties.'http.query.params'.sw_user_id]" doc:name="Variable"/>
+        <component class="com.mule.magento.actions.MagentoSyncContactsToQuickBooks" doc:name="Java"/>
+    </flow>
+</mule>
